@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+  <nav class="navbar">
+    <link rel="stylesheet" href="../style.css">
+    <ul>
+      <li><a href="../index.html">Home</a></li>
+      <li><a href="progetti.html">Progetti</a></li>
+      <li><a href="chisono.html">Chi Sono</a></li>
+      <li><a href="#">Contatti</a></li>
+    </ul>
+  </nav>
+
+    <title>Generatore di Onde</title>
+
+    <style>
+        .wave-container {
+            font-family: 'Courier New', monospace;
+            background-color: #1A3E2C;
+            color: #F5F5F5;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px auto;
+            max-width: 800px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        h2 {
+            color: #3CB371;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        
+        select, button, input {
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: none;
+            background-color: #2E8B57;
+            color: white;
+            font-family: 'Courier New', monospace;
+        }
+        
+        button {
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #FFD700;
+            color: #333;
+        }
+        
+        .visualization {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        canvas {
+            background-color: #0F1E16;
+            border-radius: 5px;
+            width: 100%;
+        }
+        
+        .frequency-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+        
+        .slider-container {
+            width: 100%;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin-top: 5px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #8BC34A;
+        }
+    </style>
+</head>
+<body>
+    <div class="wave-container">
+        <h2>Generatore di Onde Audio</h2>
+        
+        <div class="controls">
+            <div>
+                <label for="waveType">Tipo di Onda:</label>
+                <select id="waveType">
+                    <option value="sine">Sinusoidale</option>
+                    <option value="square">Quadra</option>
+                    <option value="sawtooth">Dente di sega</option>
+                    <option value="triangle">Triangolare</option>
+                </select>
+            </div>
+            
+            <div class="slider-container">
+                <label for="frequency">Frequenza: <span id="freqValue">440</span> Hz</label>
+                <input type="range" id="frequency" min="20" max="2000" value="440">
+            </div>
+            
+            <div>
+                <label for="volume">Volume:</label>
+                <input type="range" id="volume" min="0" max="100" value="50">
+            </div>
+            
+            <button id="playBtn">Riproduci</button>
+            <button id="stopBtn">Ferma</button>
+        </div>
+        
+        <div class="visualization">
+            <canvas id="waveCanvas" height="150"></canvas>
+            <canvas id="spectrumCanvas" height="150"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Configurazione audio
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let oscillator = null;
+        let gainNode = audioCtx.createGain();
+        let analyser = audioCtx.createAnalyser();
+        
+        // Configurazione canvas
+        const waveCanvas = document.getElementById('waveCanvas');
+        const waveCtx = waveCanvas.getContext('2d');
+        const spectrumCanvas = document.getElementById('spectrumCanvas');
+        const spectrumCtx = spectrumCanvas.getContext('2d');
+        
+        // Elementi UI
+        const waveTypeSelect = document.getElementById('waveType');
+        const frequencySlider = document.getElementById('frequency');
+        const volumeSlider = document.getElementById('volume');
+        const freqValueDisplay = document.getElementById('freqValue');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        
+        // Dimensioni canvas
+        function resizeCanvases() {
+            const containerWidth = document.querySelector('.wave-container').clientWidth;
+            waveCanvas.width = containerWidth - 40;
+            spectrumCanvas.width = containerWidth - 40;
+        }
+        
+        window.addEventListener('resize', resizeCanvases);
+        resizeCanvases();
+        
+        // Genera onda
+        function playOscillator() {
+            if (oscillator) {
+                oscillator.stop();
+            }
+            
+            oscillator = audioCtx.createOscillator();
+            oscillator.type = waveTypeSelect.value;
+            oscillator.frequency.value = frequencySlider.value;
+            
+            gainNode.gain.value = volumeSlider.value / 100;
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(analyser);
+            analyser.connect(audioCtx.destination);
+            
+            oscillator.start();
+            visualize();
+        }
+        
+        // Ferma onda
+        function stopOscillator() {
+            if (oscillator) {
+                oscillator.stop();
+                oscillator = null;
+            }
+        }
+        
+        // Visualizza onda e spettro
+        function visualize() {
+            if (!oscillator) return;
+            
+            requestAnimationFrame(visualize);
+            
+            // Visualizzazione forma d'onda
+            const waveBufferLength = analyser.frequencyBinCount;
+            const waveDataArray = new Uint8Array(waveBufferLength);
+            analyser.getByteTimeDomainData(waveDataArray);
+            
+            waveCtx.fillStyle = '#0F1E16';
+            waveCtx.fillRect(0, 0, waveCanvas.width, waveCanvas.height);
+            waveCtx.lineWidth = 2;
+            waveCtx.strokeStyle = '#3CB371';
+            waveCtx.beginPath();
+            
+            const sliceWidth = waveCanvas.width / waveBufferLength;
+            let x = 0;
+            
+            for (let i = 0; i < waveBufferLength; i++) {
+                const v = waveDataArray[i] / 128.0;
+                const y = v * waveCanvas.height / 2;
+                
+                if (i === 0) {
+                    waveCtx.moveTo(x, y);
+                } else {
+                    waveCtx.lineTo(x, y);
+                }
+                
+                x += sliceWidth;
+            }
+            
+            waveCtx.lineTo(waveCanvas.width, waveCanvas.height / 2);
+            waveCtx.stroke();
+            
+            // Visualizzazione spettro
+            const spectrumBufferLength = analyser.frequencyBinCount;
+            const spectrumDataArray = new Uint8Array(spectrumBufferLength);
+            analyser.getByteFrequencyData(spectrumDataArray);
+            
+            spectrumCtx.fillStyle = '#0F1E16';
+            spectrumCtx.fillRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
+            
+            const barWidth = (spectrumCanvas.width / spectrumBufferLength) * 2.5;
+            let barX = 0;
+            
+            for (let i = 0; i < spectrumBufferLength; i++) {
+                const barHeight = spectrumDataArray[i] / 2;
+                
+                spectrumCtx.fillStyle = `rgb(${barHeight + 100}, 50, 50)`;
+                spectrumCtx.fillRect(barX, spectrumCanvas.height - barHeight, barWidth, barHeight);
+                
+                barX += barWidth + 1;
+            }
+        }
+        
+        // Event listeners
+        playBtn.addEventListener('click', playOscillator);
+        stopBtn.addEventListener('click', stopOscillator);
+        
+        frequencySlider.addEventListener('input', function() {
+            freqValueDisplay.textContent = this.value;
+            if (oscillator) {
+                oscillator.frequency.value = this.value;
+            }
+        });
+        
+        volumeSlider.addEventListener('input', function() {
+            if (gainNode) {
+                gainNode.gain.value = this.value / 100;
+            }
+        });
+        
+        waveTypeSelect.addEventListener('change', function() {
+            if (oscillator) {
+                oscillator.type = this.value;
+            }
+        });
+    </script>
+    <footer>
+    <p>&copy; 2025 Giuseppe Esposito. Tutti i diritti riservati.</p>
+  </footer>
+</body>
+</html>

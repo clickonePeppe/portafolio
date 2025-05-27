@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinusoide Oscillante</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: transparent;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background-color: transparent;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="waveCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('waveCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Dimensioni canvas
+        canvas.width = 800;
+        canvas.height = 400;
+        
+        // Configurazione onda
+        const wave = {
+            amplitude: 180,      // Altezza dell'onda (in pixel)
+            frequency: 0.03,    // Frequenza dell'onda
+            speed: 0.10,        // Velocità di oscillazione
+            phase: 0,           // Fase iniziale
+            color: '#FFD700',   // Colore oro
+            lineWidth: 8
+        };
+        
+        // Disegna l'asse x
+        function drawAxis() {
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.moveTo(0, canvas.height/2);
+            ctx.lineTo(canvas.width, canvas.height/2);
+            ctx.stroke();
+            
+            // Aggiungi etichetta asse
+            ctx.font = '12px Arial';
+            ctx.fillStyle = 'white';
+            ctx.fillText('x', canvas.width - 15, canvas.height/2 - 5);
+        }
+        
+        function animate() {
+            // Pulisci il canvas mantenendo trasparenza
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Aggiorna la fase per l'animazione
+            wave.phase += wave.speed;
+            
+            // Disegna l'asse x
+            drawAxis();
+            
+            // Disegna l'onda sinusoidale
+            ctx.beginPath();
+            
+            // Crea gradiente oro per l'onda
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, 'rgba(255, 215, 0, 0.7)');
+            gradient.addColorStop(0.5, wave.color);
+            gradient.addColorStop(1, 'rgba(255, 215, 0, 0.7)');
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = wave.lineWidth;
+            
+            for (let x = 0; x < canvas.width; x++) {
+                // Calcola il valore y normalizzato tra -1 e +1
+                const yNormalized = Math.sin(x * wave.frequency + wave.phase);
+                
+                // Converti in coordinate canvas (con -1 in basso e +1 in alto)
+                const y = canvas.height/2 - yNormalized * wave.amplitude/2;
+                
+                if (x === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>
