@@ -95,6 +95,11 @@ position: fixed;
   justify-content: center;
   width: 100%;
 }
+.content2 {
+  flex: 1;
+  padding: 1rem;
+  text-align: justify;
+}
 
 footer {
   background-color: #2E8B57;
