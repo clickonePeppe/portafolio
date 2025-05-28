@@ -7,12 +7,19 @@
     <style>
         body {
             margin: 0;
+            padding: 0;
             background-color: transparent;
             overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
         canvas {
             display: block;
             background-color: transparent;
+            max-width: 100%;
+            height: auto;
         }
     </style>
 </head>
@@ -23,18 +30,23 @@
         const canvas = document.getElementById('waveCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Dimensioni canvas
-        canvas.width = 800;
-        canvas.height = 400;
+        // Dimensioni canvas responsive
+        function resizeCanvas() {
+            const containerWidth = Math.min(800, window.innerWidth - 40);
+            const containerHeight = Math.min(400, containerWidth * 0.5);
+            
+            canvas.width = containerWidth;
+            canvas.height = containerHeight;
+        }
         
         // Configurazione onda
         const wave = {
-            amplitude: 180,      // Altezza dell'onda (in pixel)
-            frequency: 0.03,    // Frequenza dell'onda
-            speed: 0.10,        // Velocità di oscillazione
-            phase: 0,           // Fase iniziale
+            amplitude: 0.4,    // Percentuale dell'altezza del canvas
+            frequency: 0.03,   // Frequenza dell'onda
+            speed: 0.10,       // Velocità di oscillazione
+            phase: 0,          // Fase iniziale
             color: '#FFD700',   // Colore oro
-            lineWidth: 8
+            lineWidth: 4        // Spessore linea (verrà adattato)
         };
         
         // Disegna l'asse x
@@ -47,7 +59,7 @@
             ctx.stroke();
             
             // Aggiungi etichetta asse
-            ctx.font = '12px Arial';
+            ctx.font = `${Math.max(10, canvas.width/50)}px Arial`;
             ctx.fillStyle = 'white';
             ctx.fillText('x', canvas.width - 15, canvas.height/2 - 5);
         }
@@ -58,6 +70,9 @@
             
             // Aggiorna la fase per l'animazione
             wave.phase += wave.speed;
+            
+            // Adatta lo spessore della linea in base alle dimensioni
+            wave.lineWidth = Math.max(2, canvas.width / 200);
             
             // Disegna l'asse x
             drawAxis();
@@ -79,7 +94,7 @@
                 const yNormalized = Math.sin(x * wave.frequency + wave.phase);
                 
                 // Converti in coordinate canvas (con -1 in basso e +1 in alto)
-                const y = canvas.height/2 - yNormalized * wave.amplitude/2;
+                const y = canvas.height/2 - yNormalized * (canvas.height * wave.amplitude);
                 
                 if (x === 0) {
                     ctx.moveTo(x, y);
@@ -93,6 +108,12 @@
             requestAnimationFrame(animate);
         }
         
+        // Inizializza e avvia animazione
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+        });
+        
+        resizeCanvas();
         animate();
     </script>
 </body>
