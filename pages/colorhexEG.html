@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-033P43PJS3"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-033P43PJS3');
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+  <nav class="navbar">
+    <link rel="stylesheet" href="../style.css">
+    <ul>
+      <li><a href="../index.html">Home</a></li>
+      <li><a href="progetti.html">Progetti</a></li>
+      <li><a href="chisono.html">Chi Sono</a></li>
+      <li><a href="#">Contatti</a></li>
+    </ul>
+  </nav>
+<title>Selettore Colore Esadecimale</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+    }
+    #colorPicker {
+      width: 100px;
+      height: 50px;
+      border: none;
+      cursor: pointer;
+    }
+    #hexValue {
+      font-size: 1.5em;
+      margin-top: 20px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Selettore Colore</h1>
+  <input type="color" id="colorPicker" value="#ff0000">
+  <div id="hexValue">#ff0000</div>
+
+  <script>
+    const colorPicker = document.getElementById('colorPicker');
+    const hexValue = document.getElementById('hexValue');
+
+    colorPicker.addEventListener('input', () => {
+      hexValue.textContent = colorPicker.value;
+    });
+  </script>
+    
+    <footer>
+    <p>&copy; 2025 Giuseppe Esposito. Tutti i diritti riservati.</p>
+  </footer>
+</body>
+</html>
