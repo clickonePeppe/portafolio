@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot - Giuseppe Esposito</title>
+    <link rel="stylesheet" href="css/styleLinux.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="header-title">
+                <h1>AI Chatbot</h1>
+            </div>
+            <div class="status">
+                <span id="loadingStatus">🔄 Inizializzazione...</span>
+            </div>
+        </div>
+        
+        <div class="chat-box" id="chatBox">
+            <!-- I messaggi appariranno qui -->
+        </div>
+        
+        <div class="input-area">
+            <div class="input-wrapper">
+                <span class="prompt">$></span>
+                <textarea id="userInput" rows="2" placeholder="Scrivi il tuo messaggio qui..."></textarea>
+            </div>
+            <button id="sendBtn">📤 Invia</button>
+            <button id="clearBtn">🗑️ Cancella</button>
+        </div>
+        
+        <div class="chat-footer">
+            <p>Basato su API Groq - Giuseppe Esposito</p>
+        </div>
+    </div>
+    
+    <script src="js/script.js"></script>
+</body>
+</html>

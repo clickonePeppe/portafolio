@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+
+<html lang="it"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AstroTarget - Trajectory Challenge</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&amp;family=Press+Start+2P&amp;display=swap" rel="stylesheet"/>
+<style>
+    body {
+      font-family: 'Chakra Petch', sans-serif;
+      user-select: none;
+    }
+    .retro-font {
+      font-family: 'Press Start 2P', monospace;
+    }
+    canvas {
+      image-rendering: pixelated;
+    }
+    /* Fullscreen layout optimizations */
+    body.is-fullscreen {
+      height: 100vh;
+      overflow: hidden;
+    }
+    body.is-fullscreen header {
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+    body.is-fullscreen main {
+      padding: 0.75rem 1rem;
+      flex: 1 1 0%;
+      height: calc(100vh - 110px);
+      max-width: 100%;
+    }
+    body.is-fullscreen #stageWrapper {
+      flex: 1 1 0%;
+      min-height: 0;
+      height: 100%;
+    }
+    body.is-fullscreen #canvasContainer {
+      aspect-ratio: auto;
+      height: 100%;
+      min-height: 0;
+      max-height: none;
+    }
+    body.is-fullscreen #controlsDashboard {
+      padding: 0.6rem 1rem;
+    }
+    body.is-fullscreen footer {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-cyan-500 selection:text-black" id="gameBody">
+<!-- Header Bar -->
+<header class="border-b border-cyan-900/50 bg-slate-900/80 backdrop-blur-md px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30 shadow-lg shadow-cyan-950/20">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 ring-1 ring-cyan-300/40">
+<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-300 retro-font text-xs md:text-sm">ASTRO TARGET</h1>
+<p class="text-xs text-cyan-400/70 font-mono tracking-tight">Omaggio Moderno a Gorilla.bas • Single Player Ballistics</p>
+</div>
+</div>
+<!-- HUD Stats Bar -->
+<div class="flex items-center gap-6 bg-slate-950/70 px-4 py-2 rounded-xl border border-cyan-800/40 text-sm">
+<div class="flex flex-col items-center">
+<span class="text-[10px] text-slate-400 tracking-wider font-semibold uppercase">Punteggio</span>
+<span class="text-cyan-400 font-bold font-mono text-base" id="scoreDisplay">0</span>
+</div>
+<div class="h-6 w-px bg-slate-800"></div>
+<div class="flex flex-col items-center">
+<span class="text-[10px] text-slate-400 tracking-wider font-semibold uppercase">Tiri Rimasti</span>
+<span class="text-emerald-400 font-bold font-mono text-base" id="ammoDisplay">5</span>
+</div>
+<div class="h-6 w-px bg-slate-800"></div>
+<div class="flex flex-col items-center">
+<span class="text-[10px] text-slate-400 tracking-wider font-semibold uppercase">Vento Planetario</span>
+<div class="flex items-center gap-1 font-mono text-base">
+<span class="text-amber-400 font-bold" id="windDir">→</span>
+<span class="text-amber-400 font-bold" id="windSpeed">0.0</span>
+<span class="text-[10px] text-slate-400">m/s</span>
+</div>
+</div>
+<div class="h-6 w-px bg-slate-800"></div>
+<div class="flex flex-col items-center">
+<span class="text-[10px] text-slate-400 tracking-wider font-semibold uppercase">Gravità</span>
+<span class="text-indigo-400 font-bold font-mono text-base">9.81 <span class="text-[10px] text-slate-400">G</span></span>
+</div>
+</div>
+<!-- Quick action buttons -->
+<div class="flex items-center gap-2">
+<button class="px-3.5 py-1.5 rounded-lg border border-cyan-500/40 text-cyan-300 hover:bg-cyan-950/60 text-xs font-semibold tracking-wide transition flex items-center gap-1.5" id="btnNewGame">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        Nuovo Settore
+      </button>
+<button class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs transition" id="btnToggleHelp">
+        ? Regole
+      </button>
+<!-- Fullscreen Button -->
+<button class="px-3 py-1.5 rounded-lg border border-cyan-500/50 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 text-xs font-semibold tracking-wide transition flex items-center gap-1.5 ring-1 ring-cyan-500/20 shadow-md shadow-cyan-950/50" id="btnFullscreen" title="Modalità Schermo Intero (Scorciatoia: F)">
+<span id="fullscreenIcon">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5h-4m4 0v-4m0 4l-5-5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</span>
+<span class="hidden sm:inline" id="fullscreenLabel">Schermo Intero</span>
+</button>
+</div>
+</header>
+<!-- Main Game Layout -->
+<main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col gap-4" id="mainContainer">
+<!-- Instructions / Banner info (Collapsible) -->
+<div class="bg-gradient-to-r from-slate-900/90 to-indigo-950/60 border border-cyan-800/40 rounded-xl p-4 text-xs md:text-sm text-slate-300 relative shadow-md" id="helpBox">
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<p class="font-bold text-cyan-300">🎯 MISSIONE: Centra la capsula aliena con la sonda energetica!</p>
+<p class="text-slate-400">Imposta l'<strong>Angolo</strong> (0° = orizzontale verso destra, 90° = verticale in alto) e la <strong>Velocità di lancio</strong> (1 - 100). Fai attenzione al vento che sposterà il tuo proiettile in volo! Premi <strong>F</strong> per passare a schermo intero.</p>
+</div>
+<button class="text-slate-400 hover:text-slate-200 text-base font-bold ml-4" id="btnCloseHelp">✕</button>
+</div>
+</div>
+<!-- Canvas Stage Container -->
+<div class="relative bg-slate-900/90 rounded-2xl border border-cyan-800/60 shadow-2xl shadow-cyan-950/50 overflow-hidden flex flex-col flex-1" id="stageWrapper">
+<div class="relative w-full aspect-[16/9] min-h-[380px] max-h-[560px] bg-slate-950 flex-1" id="canvasContainer">
+<canvas class="w-full h-full block cursor-crosshair" id="gameCanvas"></canvas>
+<!-- Dynamic Overlay / Notifications inside canvas -->
+<div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20 hidden" id="gameOverlay">
+<div class="max-w-md w-full p-6 rounded-2xl bg-slate-900 border border-cyan-700/60 shadow-2xl" id="overlayContent">
+<h2 class="text-2xl font-bold retro-font text-cyan-400 mb-2" id="overlayTitle">TARGET CENTRATO!</h2>
+<p class="text-slate-300 text-sm mb-6" id="overlayDesc">Ottimo calcolo balistico, comandante!</p>
+<button class="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold tracking-wide hover:brightness-110 shadow-lg shadow-cyan-500/30 transition transform hover:-translate-y-0.5" id="overlayBtn">
+              PROSSIMO LIVELLO
+            </button>
+</div>
+</div>
+<!-- In-canvas mini toast log -->
+<div class="absolute top-4 left-4 bg-slate-900/80 border border-cyan-700/40 text-cyan-300 px-3 py-1.5 rounded-lg text-xs font-mono backdrop-blur pointer-events-none transition-opacity duration-300 opacity-90" id="logMessage">
+          In attesa di coordinate di lancio...
+        </div>
+<!-- Trajectory Angle Pointer Indicator in canvas bottom-left -->
+<div class="absolute bottom-4 left-4 bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-mono text-slate-400 backdrop-blur pointer-events-none">
+          Città: Neo-Veridia | Settore <span class="text-cyan-400 font-bold" id="levelDisplay">1</span>
+</div>
+</div>
+</div>
+<!-- Controls Dashboard (Inputs for Angle & Velocity) -->
+<div class="bg-slate-900/90 border border-cyan-800/40 rounded-2xl p-5 shadow-xl backdrop-blur-md" id="controlsDashboard">
+<form class="grid grid-cols-1 md:grid-cols-12 gap-5 items-center" id="launchForm" onsubmit="return false;">
+<!-- Angle Control -->
+<div class="md:col-span-4 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 space-y-2">
+<div class="flex justify-between items-center text-xs">
+<label class="font-bold text-slate-300 flex items-center gap-1.5" for="angleInput">
+<svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+              ANGOLAZIONE (°)
+            </label>
+<span class="font-mono text-cyan-400 font-bold text-sm bg-cyan-950/80 border border-cyan-800/60 px-2 py-0.5 rounded" id="angleValText">45°</span>
+</div>
+<div class="flex items-center gap-3">
+<input class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400" id="angleSlider" max="85" min="5" type="range" value="45"/>
+<input class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center font-mono text-cyan-300 text-sm focus:outline-none focus:border-cyan-400" id="angleInput" max="85" min="5" type="number" value="45"/>
+</div>
+</div>
+<!-- Velocity / Power Control -->
+<div class="md:col-span-4 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 space-y-2">
+<div class="flex justify-between items-center text-xs">
+<label class="font-bold text-slate-300 flex items-center gap-1.5" for="velocityInput">
+<svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+              VELOCITÀ / POTENZA
+            </label>
+<span class="font-mono text-indigo-400 font-bold text-sm bg-indigo-950/80 border border-indigo-800/60 px-2 py-0.5 rounded" id="velocityValText">60</span>
+</div>
+<div class="flex items-center gap-3">
+<input class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-400" id="velocitySlider" max="100" min="10" type="range" value="60"/>
+<input class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center font-mono text-indigo-300 text-sm focus:outline-none focus:border-indigo-400" id="velocityInput" max="100" min="10" type="number" value="60"/>
+</div>
+</div>
+<!-- Launch Button & Reset Action -->
+<div class="md:col-span-4 flex items-center gap-3 h-full">
+<button class="flex-1 py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-400 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-extrabold text-sm tracking-wider uppercase transition shadow-lg shadow-cyan-500/30 flex items-center justify-center gap-2 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" id="btnLaunch" type="button">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+            LANCIA MISSILE!
+          </button>
+<button class="p-3.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition flex items-center justify-center" id="btnAimHelper" title="Mostra/Nascondi linea guida iniziale" type="button">
+<svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+</form>
+</div>
+</main>
+<!-- Footer -->
+<footer class="border-t border-slate-900 bg-slate-950/60 py-3 px-6 text-center text-xs text-slate-500 flex flex-col md:flex-row items-center justify-between gap-2">
+<div>Ispirato al classico arcade QBasic <strong>Gorilla.bas (1991)</strong> riprogettato in chiave futuristica solitaria.</div>
+<div class="text-[11px] text-slate-600">Simulazione fisica: Gravità + Resistenza aerodinamica + Vento variabile</div>
+</footer>
+<!-- Audio Effects via Web Audio API Synthesis (No external assets required!) -->
+<script>
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+      }
+      playLaunch() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(700, now + 0.25);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+      playHitTarget() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Victory fanfare mini chime
+        [261.63, 329.63, 392.00, 523.25].forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + i * 0.08);
+          gain.gain.setValueAtTime(0.2, now + i * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.3);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.08);
+          osc.stop(now + i * 0.08 + 0.3);
+        });
+      }
+      playExplosion() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const bufferSize = this.ctx.sampleRate * 0.4;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(600, now);
+        filter.frequency.exponentialRampToValueAtTime(80, now + 0.4);
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(now);
+      }
+    }
+    const sound = new SoundEngine();
+
+    // ----------------------------------------------------
+    // GAME CORE ENGINE & SIMULATION
+    // ----------------------------------------------------
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // UI Elements
+    const angleSlider = document.getElementById('angleSlider');
+    const angleInput = document.getElementById('angleInput');
+    const angleValText = document.getElementById('angleValText');
+    const velocitySlider = document.getElementById('velocitySlider');
+    const velocityInput = document.getElementById('velocityInput');
+    const velocityValText = document.getElementById('velocityValText');
+    const btnLaunch = document.getElementById('btnLaunch');
+    const btnNewGame = document.getElementById('btnNewGame');
+    const btnToggleHelp = document.getElementById('btnToggleHelp');
+    const btnCloseHelp = document.getElementById('btnCloseHelp');
+    const helpBox = document.getElementById('helpBox');
+    const btnAimHelper = document.getElementById('btnAimHelper');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const ammoDisplay = document.getElementById('ammoDisplay');
+    const windDir = document.getElementById('windDir');
+    const windSpeed = document.getElementById('windSpeed');
+    const levelDisplay = document.getElementById('levelDisplay');
+    const logMessage = document.getElementById('logMessage');
+    const gameOverlay = document.getElementById('gameOverlay');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlayDesc = document.getElementById('overlayDesc');
+    const overlayBtn = document.getElementById('overlayBtn');
+
+    // Fullscreen Elements
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    const fullscreenIcon = document.getElementById('fullscreenIcon');
+    const fullscreenLabel = document.getElementById('fullscreenLabel');
+    const gameBody = document.getElementById('gameBody');
+
+    // State
+    let width = 0;
+    let height = 0;
+    let scaleRatio = 1;
+    let showAimGuide = true;
+
+    let score = 0;
+    let level = 1;
+    let ammo = 5;
+    let wind = 0; // Negative = left, Positive = right
+
+    let buildings = [];
+    let player = { buildingIndex: 1, x: 0, y: 0, width: 28, height: 38 };
+    let target = { buildingIndex: 6, x: 0, y: 0, width: 34, height: 34, hp: 100, active: true };
+    let projectile = null;
+    let particles = [];
+    let blastHoles = [];
+    let stars = [];
+    let trajectoryHistory = []; // Past attempts
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      width = canvas.width;
+      height = canvas.height;
+      scaleRatio = width / 1000;
+      generateStars();
+      if (buildings.length === 0) {
+        initLevel();
+      } else {
+        repositionEntities();
+      }
+    }
+
+    // ----------------------------------------------------
+    // FULLSCREEN HANDLER
+    // ----------------------------------------------------
+    function isFullscreenActive() {
+      return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+    }
+
+    function toggleFullscreen() {
+      if (!isFullscreenActive()) {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen().catch(err => console.warn(err));
+        } else if (elem.webkitRequestFullscreen) {
+          elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+          elem.msRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(err => console.warn(err));
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      }
+    }
+
+    function updateFullscreenUI() {
+      const isFs = isFullscreenActive();
+      if (isFs) {
+        gameBody.classList.add('is-fullscreen');
+        fullscreenLabel.innerText = 'Riduci Schermo';
+        btnFullscreen.title = 'Esci da Schermo Intero (F o ESC)';
+        btnFullscreen.classList.add('bg-cyan-900/60', 'ring-cyan-400');
+        fullscreenIcon.innerHTML = `
+          <svg class="w-4 h-4 text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9L4 4m0 0v5m0-5h5m6 0h5m0 0v5m0-5l-5 5M9 15l-5 5m0 0h5m-5 0v-5m15 5l-5-5m5 5v-5m0 5h-5" />
+          </svg>
+        `;
+        logMessage.innerText = 'Modalità Schermo Intero attivata. Premi [F] o [ESC] per uscire.';
+      } else {
+        gameBody.classList.remove('is-fullscreen');
+        fullscreenLabel.innerText = 'Schermo Intero';
+        btnFullscreen.title = 'Modalità Schermo Intero (Scorciatoia: F)';
+        btnFullscreen.classList.remove('bg-cyan-900/60', 'ring-cyan-400');
+        fullscreenIcon.innerHTML = `
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5h-4m4 0v-4m0 4l-5-5" />
+          </svg>
+        `;
+      }
+      setTimeout(resizeCanvas, 80);
+      setTimeout(resizeCanvas, 220);
+    }
+
+    btnFullscreen.addEventListener('click', toggleFullscreen);
+
+    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+      document.addEventListener(evt, updateFullscreenUI);
+    });
+
+    function generateStars() {
+      stars = [];
+      const count = Math.floor(80 * (width / 1000));
+      for (let i = 0; i < count; i++) {
+        stars.push({
+          x: Math.random() * width,
+          y: Math.random() * (height * 0.75),
+          size: Math.random() * 1.8 + 0.5,
+          alpha: Math.random() * 0.8 + 0.2,
+          twinkleSpeed: Math.random() * 0.02 + 0.005
+        });
+      }
+    }
+
+    function generateSkyline() {
+      buildings = [];
+      const numBuildings = Math.floor(Math.random() * 3) + 8; // 8 to 10 buildings
+      const buildingWidth = width / numBuildings;
+      
+      const minH = height * 0.25;
+      const maxH = height * 0.72;
+
+      let currentX = 0;
+      for (let i = 0; i < numBuildings; i++) {
+        const bHeight = Math.random() * (maxH - minH) + minH;
+        // Palettes for cyberpunk neo-retro aesthetic
+        const colors = [
+          { top: '#1e293b', body: '#0f172a', win: '#38bdf8' },
+          { top: '#1e1b4b', body: '#0f0e26', win: '#c084fc' },
+          { top: '#064e3b', body: '#022c22', win: '#34d399' },
+          { top: '#164e63', body: '#083344', win: '#22d3ee' }
+        ];
+        const style = colors[i % colors.length];
+
+        buildings.push({
+          x: currentX,
+          y: height - bHeight,
+          w: buildingWidth + 1,
+          h: bHeight,
+          style: style,
+          windows: generateWindows(currentX, height - bHeight, buildingWidth, bHeight)
+        });
+        currentX += buildingWidth;
+      }
+    }
+
+    function generateWindows(bx, by, bw, bh) {
+      const wins = [];
+      const winW = 7 * scaleRatio;
+      const winH = 9 * scaleRatio;
+      const gapX = 14 * scaleRatio;
+      const gapY = 16 * scaleRatio;
+
+      for (let y = by + 20 * scaleRatio; y < height - 15; y += gapY) {
+        for (let x = bx + 10 * scaleRatio; x < bx + bw - 10 * scaleRatio; x += gapX) {
+          if (Math.random() > 0.45) {
+            wins.push({ x, y, lit: Math.random() > 0.3 });
+          }
+        }
+      }
+      return wins;
+    }
+
+    function repositionEntities() {
+      if (buildings.length < 4) return;
+      // Position player on 1st or 2nd building
+      const pB = buildings[player.buildingIndex];
+      player.x = pB.x + pB.w / 2;
+      player.y = pB.y;
+
+      // Position target on an opposite building
+      const tB = buildings[target.buildingIndex];
+      target.x = tB.x + tB.w / 2;
+      target.y = tB.y;
+    }
+
+    function initLevel() {
+      generateSkyline();
+      
+      // Player on left side (index 1 or 2)
+      player.buildingIndex = 1;
+      
+      // Target on right side (buildings.length - 2 or - 3)
+      target.buildingIndex = buildings.length - 2;
+      target.active = true;
+      blastHoles = [];
+      trajectoryHistory = [];
+      projectile = null;
+
+      repositionEntities();
+
+      // Random wind: between -4.5 and +4.5
+      wind = (Math.random() * 8 - 4);
+      updateWindUI();
+
+      ammo = 5;
+      ammoDisplay.innerText = ammo;
+      btnLaunch.disabled = false;
+      levelDisplay.innerText = level;
+      logMessage.innerText = `Settore ${level} inizializzato. Prendi la mira!`;
+    }
+
+    function updateWindUI() {
+      const abs = Math.abs(wind).toFixed(1);
+      windSpeed.innerText = abs;
+      if (wind > 0.3) {
+        windDir.innerText = '→';
+        windDir.className = 'text-emerald-400 font-bold';
+      } else if (wind < -0.3) {
+        windDir.innerText = '←';
+        windDir.className = 'text-rose-400 font-bold';
+      } else {
+        windDir.innerText = '•';
+        windDir.className = 'text-slate-400 font-bold';
+      }
+    }
+
+    // Synchronize Input & Sliders
+    function syncControls() {
+      angleSlider.addEventListener('input', (e) => {
+        angleInput.value = e.target.value;
+        angleValText.innerText = `${e.target.value}°`;
+      });
+      angleInput.addEventListener('input', (e) => {
+        let val = Math.min(85, Math.max(5, e.target.value || 5));
+        angleSlider.value = val;
+        angleValText.innerText = `${val}°`;
+      });
+
+      velocitySlider.addEventListener('input', (e) => {
+        velocityInput.value = e.target.value;
+        velocityValText.innerText = e.target.value;
+      });
+      velocityInput.addEventListener('input', (e) => {
+        let val = Math.min(100, Math.max(10, e.target.value || 10));
+        velocitySlider.value = val;
+        velocityValText.innerText = val;
+      });
+    }
+    syncControls();
+
+    // Launch Logic
+    function launchProjectile() {
+      if (projectile !== null || ammo <= 0) return;
+
+      const angleDeg = parseFloat(angleInput.value);
+      const velocity = parseFloat(velocityInput.value);
+
+      const rad = (angleDeg * Math.PI) / 180;
+      
+      // Calculate realistic velocity scale
+      const speedScale = 0.38 * (width / 1000);
+      const vx = Math.cos(rad) * velocity * speedScale;
+      const vy = -Math.sin(rad) * velocity * speedScale;
+
+      projectile = {
+        x: player.x,
+        y: player.y - 28 * scaleRatio,
+        vx: vx,
+        vy: vy,
+        trail: [],
+        radius: 4 * scaleRatio,
+        active: true
+      };
+
+      ammo--;
+      ammoDisplay.innerText = ammo;
+      btnLaunch.disabled = true;
+      logMessage.innerText = `Lancio in corso! Angolo: ${angleDeg}°, Potenza: ${velocity}...`;
+      sound.playLaunch();
+    }
+
+    btnLaunch.addEventListener('click', launchProjectile);
+
+    // Blast and Collision effects
+    function createExplosion(x, y, color = '#f97316', count = 28) {
+      sound.playExplosion();
+      blastHoles.push({ x, y, r: (18 + Math.random() * 8) * scaleRatio });
+      for (let i = 0; i < count; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = Math.random() * 5 + 1;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd,
+          life: 1,
+          decay: Math.random() * 0.03 + 0.015,
+          color: color,
+          size: Math.random() * 3 + 1
+        });
+      }
+    }
+
+    function checkCollision(x, y, r) {
+      // 1. Check Target Hit!
+      const distToTarget = Math.hypot(x - target.x, y - (target.y - 18 * scaleRatio));
+      if (distToTarget < (18 * scaleRatio + r) && target.active) {
+        return { hit: true, type: 'target' };
+      }
+
+      // 2. Check Buildings Hit
+      for (let b of buildings) {
+        if (x >= b.x && x <= b.x + b.w && y >= b.y) {
+          // Check if it hits inside a pre-existing blast hole
+          const insideHole = blastHoles.some(hole => Math.hypot(x - hole.x, y - hole.y) < hole.r * 0.8);
+          if (!insideHole) {
+            return { hit: true, type: 'building', building: b };
+          }
+        }
+      }
+
+      // 3. Out of bounds (bottom or sides)
+      if (y > height || x < -50 || x > width + 50) {
+        return { hit: true, type: 'out_of_bounds' };
+      }
+
+      return { hit: false };
+    }
+
+    function handleTurnOutcome(hitResult) {
+      if (hitResult.type === 'target') {
+        target.active = false;
+        createExplosion(target.x, target.y - 18 * scaleRatio, '#06b6d4', 45);
+        sound.playHitTarget();
+        
+        const roundPoints = 100 + (ammo * 25);
+        score += roundPoints;
+        scoreDisplay.innerText = score;
+
+        setTimeout(() => {
+          overlayTitle.innerText = "🎯 OBIETTIVO DISTRUTTO!";
+          overlayTitle.className = "text-xl md:text-2xl font-bold retro-font text-cyan-400 mb-2";
+          overlayDesc.innerHTML = `Impatto confermato! Hai ottenuto <strong class="text-cyan-300">${roundPoints} punti</strong>.<br>Vento e posizione cambieranno nel prossimo settore.`;
+          overlayBtn.innerText = "PROSSIMO SETTORE";
+          overlayBtn.onclick = () => {
+            level++;
+            gameOverlay.classList.add('hidden');
+            initLevel();
+          };
+          gameOverlay.classList.remove('hidden');
+        }, 800);
+
+      } else {
+        // Missed
+        if (ammo <= 0) {
+          setTimeout(() => {
+            overlayTitle.innerText = "💀 ENERGIA ESAURITA";
+            overlayTitle.className = "text-xl md:text-2xl font-bold retro-font text-rose-500 mb-2";
+            overlayDesc.innerHTML = `Hai terminato i colpi disponibili per questo settore.<br>Punteggio finale: <strong class="text-amber-400">${score} punti</strong>.`;
+            overlayBtn.innerText = "RIPROVA DA CAPO";
+            overlayBtn.onclick = () => {
+              score = 0;
+              level = 1;
+              scoreDisplay.innerText = score;
+              gameOverlay.classList.add('hidden');
+              initLevel();
+            };
+            gameOverlay.classList.remove('hidden');
+          }, 900);
+        } else {
+          logMessage.innerText = `Mancato! Regola l'angolo o la potenza (Colpi rimasti: ${ammo})`;
+          btnLaunch.disabled = false;
+        }
+      }
+    }
+
+    // ----------------------------------------------------
+    // RENDERING PIPELINE
+    // ----------------------------------------------------
+    function drawCyberCharacter(x, y) {
+      ctx.save();
+      const s = scaleRatio;
+      
+      // Base platform / pedestal
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(x - 14 * s, y - 4 * s, 28 * s, 4 * s);
+
+      // Cyber Cannon Body
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5 * s;
+      ctx.beginPath();
+      ctx.arc(x, y - 12 * s, 10 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Glowing Core
+      ctx.fillStyle = '#22d3ee';
+      ctx.shadowColor = '#06b6d4';
+      ctx.shadowBlur = 8 * s;
+      ctx.beginPath();
+      ctx.arc(x, y - 12 * s, 4 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Turret Barrel oriented by current angle
+      const angle = (parseFloat(angleInput.value) * Math.PI) / 180;
+      const barrelLen = 20 * s;
+      const bx = x + Math.cos(-angle) * barrelLen;
+      const by = (y - 12 * s) + Math.sin(-angle) * barrelLen;
+
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 4 * s;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 12 * s);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+
+      // Barrel tip glow
+      ctx.fillStyle = '#ec4899';
+      ctx.beginPath();
+      ctx.arc(bx, by, 2.5 * s, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawTargetObjective(x, y) {
+      if (!target.active) return;
+      ctx.save();
+      const s = scaleRatio;
+      const t = Date.now() * 0.003;
+      const hoverY = y - 18 * s + Math.sin(t) * (3 * s);
+
+      // Radar / Force field pulse
+      ctx.strokeStyle = 'rgba(236, 72, 153, 0.4)';
+      ctx.lineWidth = 1.5 * s;
+      ctx.beginPath();
+      ctx.arc(x, hoverY, (16 + Math.sin(t * 2) * 3) * s, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Outer Hexagonal Frame
+      ctx.fillStyle = '#311042';
+      ctx.strokeStyle = '#f43f5e';
+      ctx.lineWidth = 2 * s;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const rad = (i * Math.PI) / 3 + t * 0.5;
+        const px = x + Math.cos(rad) * 12 * s;
+        const py = hoverY + Math.sin(rad) * 12 * s;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Pulsing Core Beacon
+      ctx.fillStyle = '#fb7185';
+      ctx.shadowColor = '#f43f5e';
+      ctx.shadowBlur = 12 * s;
+      ctx.beginPath();
+      ctx.arc(x, hoverY, 5 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Base Support Antenna
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2 * s;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, hoverY + 12 * s);
+      ctx.stroke();
+
+      // Target Label
+      ctx.font = `${Math.max(9, 10 * s)}px 'Press Start 2P', monospace`;
+      ctx.fillStyle = '#fb7185';
+      ctx.textAlign = 'center';
+      ctx.fillText('TARGET', x, hoverY - 22 * s);
+
+      ctx.restore();
+    }
+
+    function renderAimGuide() {
+      if (!showAimGuide || projectile !== null) return;
+      ctx.save();
+      const s = scaleRatio;
+      const angle = (parseFloat(angleInput.value) * Math.PI) / 180;
+      const speed = parseFloat(velocityInput.value) * 0.38 * (width / 1000);
+
+      let simX = player.x;
+      let simY = player.y - 12 * s;
+      let simVx = Math.cos(angle) * speed;
+      let simVy = -Math.sin(angle) * speed;
+      const gravity = 0.18 * s;
+      const windForce = (wind * 0.015) * s;
+
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.35)';
+      ctx.lineWidth = 1.5 * s;
+      ctx.setLineDash([4 * s, 4 * s]);
+      ctx.beginPath();
+      ctx.moveTo(simX, simY);
+
+      // Trace just the first 18 frames of trajectory
+      for (let i = 0; i < 18; i++) {
+        simX += simVx;
+        simY += simVy;
+        simVy += gravity;
+        simVx += windForce;
+        ctx.lineTo(simX, simY);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, width, height);
+
+      // 1. Sky Gradient & Stars
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
+      skyGrad.addColorStop(0, '#030712');
+      skyGrad.addColorStop(0.7, '#082f49');
+      skyGrad.addColorStop(1, '#020617');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Stars twinkling
+      for (let star of stars) {
+        star.alpha += (Math.random() - 0.5) * star.twinkleSpeed;
+        star.alpha = Math.max(0.1, Math.min(0.9, star.alpha));
+        ctx.fillStyle = `rgba(224, 242, 254, ${star.alpha})`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Moon in background
+      ctx.save();
+      ctx.fillStyle = '#f8fafc';
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 18 * scaleRatio;
+      ctx.beginPath();
+      ctx.arc(width * 0.85, height * 0.22, 26 * scaleRatio, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#082f49';
+      ctx.beginPath();
+      ctx.arc(width * 0.85 - 8 * scaleRatio, height * 0.22 - 5 * scaleRatio, 24 * scaleRatio, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // 2. Buildings Skyline
+      for (let b of buildings) {
+        // Building main silhouette
+        const bGrad = ctx.createLinearGradient(b.x, b.y, b.x, height);
+        bGrad.addColorStop(0, b.style.top);
+        bGrad.addColorStop(1, b.style.body);
+        ctx.fillStyle = bGrad;
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+
+        // Building borders / highlights
+        ctx.strokeStyle = '#0284c7';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(b.x, b.y, b.w, b.h);
+
+        // Windows
+        for (let win of b.windows) {
+          if (win.lit) {
+            ctx.fillStyle = b.style.win;
+            ctx.fillRect(win.x, win.y, 6 * scaleRatio, 7 * scaleRatio);
+          }
+        }
+      }
+
+      // 3. Blast Holes in buildings (Explosion craters)
+      ctx.save();
+      for (let hole of blastHoles) {
+        ctx.fillStyle = '#020617';
+        ctx.beginPath();
+        ctx.arc(hole.x, hole.y, hole.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 4. Past Shot Trajectories
+      for (let past of trajectoryHistory) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i < past.length; i++) {
+          if (i === 0) ctx.moveTo(past[i].x, past[i].y);
+          else ctx.lineTo(past[i].x, past[i].y);
+        }
+        ctx.stroke();
+      }
+
+      // 5. Player & Target
+      drawCyberCharacter(player.x, player.y);
+      drawTargetObjective(target.x, target.y);
+      renderAimGuide();
+
+      // 6. Active Projectile & Trail
+      if (projectile) {
+        // Update physics
+        const gravity = 0.18 * scaleRatio;
+        const windForce = (wind * 0.015) * scaleRatio;
+
+        projectile.x += projectile.vx;
+        projectile.y += projectile.vy;
+        projectile.vy += gravity;
+        projectile.vx += windForce;
+
+        projectile.trail.push({ x: projectile.x, y: projectile.y });
+        if (projectile.trail.length > 25) projectile.trail.shift();
+
+        // Draw Trail
+        ctx.save();
+        for (let i = 0; i < projectile.trail.length; i++) {
+          const pt = projectile.trail[i];
+          const alpha = i / projectile.trail.length;
+          ctx.fillStyle = `rgba(34, 211, 238, ${alpha * 0.8})`;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, (2 + alpha * 2) * scaleRatio, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Draw Projectile Core
+        ctx.fillStyle = '#f43f5e';
+        ctx.shadowColor = '#fb7185';
+        ctx.shadowBlur = 12 * scaleRatio;
+        ctx.beginPath();
+        ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Collision Check
+        const col = checkCollision(projectile.x, projectile.y, projectile.radius);
+        if (col.hit) {
+          trajectoryHistory.push([...projectile.trail]);
+          if (col.type === 'building') {
+            createExplosion(projectile.x, projectile.y, '#f97316');
+          }
+          handleTurnOutcome(col);
+          projectile = null;
+        }
+      }
+
+      // 7. Explosion Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.08; // gravity for debris
+        p.life -= p.decay;
+
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+        } else {
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.life;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * scaleRatio, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    // Window Listeners & Quick buttons
+    window.addEventListener('resize', resizeCanvas);
+
+    btnNewGame.addEventListener('click', () => {
+      score = 0;
+      level = 1;
+      scoreDisplay.innerText = score;
+      initLevel();
+    });
+
+    btnToggleHelp.addEventListener('click', () => {
+      helpBox.classList.toggle('hidden');
+      setTimeout(resizeCanvas, 50);
+    });
+
+    btnCloseHelp.addEventListener('click', () => {
+      helpBox.classList.add('hidden');
+      setTimeout(resizeCanvas, 50);
+    });
+
+    btnAimHelper.addEventListener('click', () => {
+      showAimGuide = !showAimGuide;
+      btnAimHelper.classList.toggle('bg-cyan-950/80', showAimGuide);
+      btnAimHelper.classList.toggle('border-cyan-500', showAimGuide);
+    });
+
+    // Keyboard controls (Enter to launch, Arrow keys to adjust, 'F' for Fullscreen)
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullscreen();
+      } else if (e.key === 'Enter' || e.code === 'Space') {
+        e.preventDefault();
+        launchProjectile();
+      } else if (e.key === 'ArrowUp') {
+        angleInput.value = Math.min(85, parseInt(angleInput.value) + 1);
+        angleSlider.value = angleInput.value;
+        angleValText.innerText = `${angleInput.value}°`;
+      } else if (e.key === 'ArrowDown') {
+        angleInput.value = Math.max(5, parseInt(angleInput.value) - 1);
+        angleSlider.value = angleInput.value;
+        angleValText.innerText = `${angleInput.value}°`;
+      } else if (e.key === 'ArrowRight') {
+        velocityInput.value = Math.min(100, parseInt(velocityInput.value) + 2);
+        velocitySlider.value = velocityInput.value;
+        velocityValText.innerText = velocityInput.value;
+      } else if (e.key === 'ArrowLeft') {
+        velocityInput.value = Math.max(10, parseInt(velocityInput.value) - 2);
+        velocitySlider.value = velocityInput.value;
+        velocityValText.innerText = velocityInput.value;
+      }
+    });
+
+    // Bootstrap
+    resizeCanvas();
+    render();
+  </script>
+</body></html>
